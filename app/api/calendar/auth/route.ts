@@ -5,8 +5,8 @@ export async function GET(request: Request) {
 
     if (!clientId) {
         return NextResponse.json({
-            error: "Falta configurar GOOGLE_CLIENT_ID en el archivo .env.local",
-            instructions: "1. Ve a Google Cloud Console. 2. Crea un proyecto. 3. Ve a APIs y Servicios > Credenciales. 4. Crea OAuth Client ID (Web application). 5. Añade localhost:3000 como origen y localhost:3000/api/calendar/callback como redirect URI."
+            error: "Falta configurar GOOGLE_CLIENT_ID",
+            instructions: "Si usas Vercel, añade GOOGLE_CLIENT_ID en la pestaña Settings > Environment Variables. Si estás en local, añádela a .env.local."
         }, { status: 500 });
     }
 
