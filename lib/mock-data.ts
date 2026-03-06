@@ -17,44 +17,12 @@ export const MOCK_CATEGORIES: Category[] = [
 // ============================================================
 // MOCK TRANSACTIONS (last 3 months)
 // ============================================================
-export const MOCK_TRANSACTIONS: Transaction[] = [
-    // March 2026
-    { id: 't-01', date: '2026-03-06', amount: 2400, type: 'income', description: 'Nómina Marzo', category_id: 'cat-6', is_recurring: true, recurrence_days: 30, is_confirmed: true, source: 'manual' },
-    { id: 't-02', date: '2026-03-05', amount: 87.50, type: 'expense', description: 'Mercadona', category_id: 'cat-1', is_recurring: false, is_confirmed: true, source: 'auto' },
-    { id: 't-03', date: '2026-03-04', amount: 14.99, type: 'expense', description: 'Netflix', category_id: 'cat-4', is_recurring: true, recurrence_days: 30, is_confirmed: true, source: 'manual' },
-    { id: 't-04', date: '2026-03-03', amount: 55.00, type: 'expense', description: 'Gasolina', category_id: 'cat-3', is_recurring: false, is_confirmed: true, source: 'auto' },
-    { id: 't-05', date: '2026-03-01', amount: 850, type: 'expense', description: 'Alquiler Marzo', category_id: 'cat-2', is_recurring: true, recurrence_days: 30, is_confirmed: true, source: 'manual' },
-    { id: 't-06', date: '2026-03-01', amount: 9.99, type: 'expense', description: 'Spotify', category_id: 'cat-4', is_recurring: true, recurrence_days: 30, is_confirmed: true, source: 'manual' },
-
-    // Pending (not confirmed — from AI scan)
-    { id: 't-07', date: '2026-03-06', amount: 124.50, type: 'expense', description: 'Factura Luz (AI)', category_id: 'cat-2', is_recurring: true, recurrence_days: 30, is_confirmed: false, source: 'auto' },
-    { id: 't-08', date: '2026-03-05', amount: 42.00, type: 'expense', description: 'Restaurante (AI)', category_id: 'cat-1', is_recurring: false, is_confirmed: false, source: 'auto' },
-
-    // February 2026
-    { id: 't-09', date: '2026-02-28', amount: 2400, type: 'income', description: 'Nómina Febrero', category_id: 'cat-6', is_recurring: true, recurrence_days: 30, is_confirmed: true, source: 'manual' },
-    { id: 't-10', date: '2026-02-25', amount: 65.00, type: 'expense', description: 'Supermercado', category_id: 'cat-1', is_recurring: false, is_confirmed: true, source: 'manual' },
-    { id: 't-11', date: '2026-02-20', amount: 35.00, type: 'expense', description: 'Farmacia', category_id: 'cat-7', is_recurring: false, is_confirmed: true, source: 'auto' },
-    { id: 't-12', date: '2026-02-14', amount: 120, type: 'expense', description: 'Cena San Valentín', category_id: 'cat-5', is_recurring: false, is_confirmed: true, source: 'manual' },
-    { id: 't-13', date: '2026-02-10', amount: 11.99, type: 'expense', description: 'Disney+', category_id: 'cat-4', is_recurring: true, recurrence_days: 30, is_confirmed: true, source: 'manual' },
-    { id: 't-14', date: '2026-02-01', amount: 850, type: 'expense', description: 'Alquiler Febrero', category_id: 'cat-2', is_recurring: true, recurrence_days: 30, is_confirmed: true, source: 'manual' },
-    { id: 't-15', date: '2026-02-05', amount: 200, type: 'income', description: 'Freelance diseño', category_id: 'cat-6', is_recurring: false, is_confirmed: true, source: 'manual' },
-
-    // January 2026
-    { id: 't-16', date: '2026-01-31', amount: 2400, type: 'income', description: 'Nómina Enero', category_id: 'cat-6', is_recurring: true, recurrence_days: 30, is_confirmed: true, source: 'manual' },
-    { id: 't-17', date: '2026-01-20', amount: 89, type: 'expense', description: 'Ropa Zara', category_id: 'cat-5', is_recurring: false, is_confirmed: true, source: 'auto' },
-    { id: 't-18', date: '2026-01-15', amount: 49, type: 'expense', description: 'Seguro médico', category_id: 'cat-7', is_recurring: true, recurrence_days: 30, is_confirmed: true, source: 'manual' },
-    { id: 't-19', date: '2026-01-10', amount: 320, type: 'expense', description: 'Revisión coche', category_id: 'cat-3', is_recurring: false, is_confirmed: true, source: 'auto' },
-    { id: 't-20', date: '2026-01-01', amount: 850, type: 'expense', description: 'Alquiler Enero', category_id: 'cat-2', is_recurring: true, recurrence_days: 30, is_confirmed: true, source: 'manual' },
-];
+export const MOCK_TRANSACTIONS: Transaction[] = [];
 
 // ============================================================
 // MOCK RECURRING TEMPLATES
 // ============================================================
-export const MOCK_RECURRING_TEMPLATES: RecurringTemplate[] = [
-    { id: 'rt-1', description: 'Alquiler', estimated_amount: 850, recurrence_days: 30, last_date: '2026-03-01', next_date: '2026-04-01', category_id: 'cat-2' },
-    { id: 'rt-2', description: 'Netflix', estimated_amount: 14.99, recurrence_days: 30, last_date: '2026-03-04', next_date: '2026-04-04', category_id: 'cat-4' },
-    { id: 'rt-3', description: 'Seguro médico', estimated_amount: 49, recurrence_days: 30, last_date: '2026-02-15', next_date: '2026-03-15', category_id: 'cat-7' },
-];
+export const MOCK_RECURRING_TEMPLATES: RecurringTemplate[] = [];
 
 // ============================================================
 // MOCK SETTINGS
