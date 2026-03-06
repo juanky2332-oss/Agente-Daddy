@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useAppStore } from '@/lib/store';
 import {
     Key, Bell, Shield, Palette, Send, Calendar, ChevronRight,
@@ -22,7 +22,7 @@ function Section({ icon, title, children }: { icon: React.ReactNode; title: stri
     );
 }
 
-export default function SettingsPage() {
+function SettingsContent() {
     const { settings, setSettings, categories, addTransaction } = useAppStore();
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -261,5 +261,17 @@ export default function SettingsPage() {
                 <p style={{ marginTop: '4px' }}>Modo: {process.env.NEXT_PUBLIC_USE_MOCK === 'true' ? '🧪 Demo (mock data)' : '🔴 Producción'}</p>
             </div>
         </div>
+    );
+}
+
+export default function SettingsPage() {
+    return (
+        <Suspense fallback={
+            <div className="page-container flex items-center justify-center min-h-[50vh]">
+                <div className="spinner" />
+            </div>
+        }>
+            <SettingsContent />
+        </Suspense>
     );
 }

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { parseDocument } from '@/lib/openai-service';
@@ -13,7 +13,7 @@ const CATEGORIES = [
     { id: 'cat-7', name: 'Salud' }, { id: 'cat-8', name: 'Educación' },
 ];
 
-export default function ScannerPage() {
+function ScannerContent() {
     const searchParams = useSearchParams();
     const initialTab = searchParams.get('tab') === 'manual' ? 'manual' : 'scan';
     const [tab, setTab] = useState<'scan' | 'manual'>(initialTab as 'scan' | 'manual');
@@ -341,5 +341,17 @@ export default function ScannerPage() {
                 </form>
             )}
         </div>
+    );
+}
+
+export default function ScannerPage() {
+    return (
+        <Suspense fallback={
+            <div className="page-container flex items-center justify-center min-h-[50vh]">
+                <div className="spinner" />
+            </div>
+        }>
+            <ScannerContent />
+        </Suspense>
     );
 }
