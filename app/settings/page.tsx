@@ -50,8 +50,12 @@ function SettingsContent() {
             const gToken = searchParams.get('g_token');
             if (gToken) {
                 try {
-                    // Fetch real events from Google Calendar
-                    const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=' + new Date().toISOString() + '&maxResults=10&orderBy=startTime&singleEvents=true', {
+                    console.log("📅 Iniciando fetch de Google Calendar con token...");
+                    const now = new Date();
+                    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+                    // Fetch events from 30 days ago to see more data
+                    const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${thirtyDaysAgo}&maxResults=20&orderBy=startTime&singleEvents=true`, {
                         headers: {
                             Authorization: `Bearer ${gToken}`
                         }

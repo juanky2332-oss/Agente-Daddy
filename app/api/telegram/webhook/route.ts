@@ -28,18 +28,49 @@ export async function POST(request: Request) {
 
             console.log(`[Telegram] Recibido de ${chatId}: ${text}`);
 
-            // Simple mock response or OpenAI integration
-            // Since OpenAI key might be in client's local storage, we use a basic mock for the webhook
-            // unless OPENAI_API_KEY is defined in .env
-
+            // OpenAI Integration for personality
             let reply = '';
+            const apiKey = process.env.OPENAI_API_KEY;
 
-            if (text.toLowerCase().includes('hola')) {
-                reply = '¡Guau! 🐾 Hola, soy Husky. He recibido tu mensaje desde Telegram. ¿En qué te puedo ayudar hoy con tus gastos?';
-            } else if (text.toLowerCase().includes('gasto') || text.toLowerCase().includes('pendiente')) {
-                reply = '📊 No tienes gastos recurrentes urgentes para hoy. ¡Todo está bajo control!';
+            if (apiKey) {
+                try {
+                    const systemPrompt = `Eres Agente Daddy, un asistente financiero personal formal, eficiente y muy profesional (Husky). 
+                    REGLAS: Responde siempre en español. Sé conciso y directo. Evita onomatopeyas de perros. Habla de forma correcta. 
+                    Usa algún emoticono ocasional (como 📊 o 💡).`;
+
+                    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${apiKey}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            model: 'gpt-4o',
+                            messages: [
+                                { role: 'system', content: systemPrompt },
+                                { role: 'user', content: text }
+                            ],
+                            max_tokens: 200,
+                        }),
+                    });
+
+                    if (response.ok) {
+                        const aiData = await response.json();
+                        reply = aiData.choices[0].message.content;
+                    } else {
+                        throw new Error('OpenAI API Error');
+                    }
+                } catch (error) {
+                    console.error('Error with AI reply:', error);
+                    reply = '¡Hola! 🐾 Soy Husky. He recibido tu mensaje, pero tengo problemas para procesar mi cerebro (IA) ahora mismo. ¿En qué te puedo ayudar?';
+                }
             } else {
-                reply = 'Entendido. Estoy sincronizado con tu app FinTrack Husky. (Nota: Para respuestas completas de IA, asegúrate de configurar OPENAI_API_KEY en tu servidor).';
+                // Fallback personality without API key
+                if (text.toLowerCase().includes('hola')) {
+                    reply = '¡🐾 Hola! Soy Agente Daddy (Husky). Recibo tus mensajes de Telegram, pero para darte consejos financieros avanzados necesito que configures mi OPENAI_API_KEY en Vercel.';
+                } else {
+                    reply = 'Recibido. Estoy escuchando, pero mi cerebro de IA está desactivado sin la clave de OpenAI configurada en el servidor.';
+                }
             }
 
             await sendMessage(chatId, reply);

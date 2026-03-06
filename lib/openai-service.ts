@@ -21,26 +21,45 @@ export async function parseDocument(
         };
     }
 
-    // TODO: Real OpenAI Vision API call
-    // const formData = new FormData();
-    // formData.append('file', file);
-    // const base64 = await fileToBase64(file);
-    // const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    //   method: 'POST',
-    //   headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({
-    //     model: 'gpt-4o',
-    //     messages: [{
-    //       role: 'user',
-    //       content: [
-    //         { type: 'text', text: 'Extract: amount (number), date (YYYY-MM-DD), type (income|expense), description, category (Food/Housing/Transport/Subscriptions/Leisure/Income), likely_recurring (bool). Return JSON only.' },
-    //         { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64}` } }
-    //       ]
-    //     }],
-    //     max_tokens: 300,
-    //   }),
-    // });
-    throw new Error('Configure OpenAI API key in Settings');
+    // Real OpenAI Vision API call
+    const reader = new FileReader();
+    const base64Promise = new Promise<string>((resolve) => {
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.readAsDataURL(file);
+    });
+    const base64 = await base64Promise;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [{
+                role: 'user',
+                content: [
+                    { type: 'text', text: 'Extract from this receipt: amount (number), date (YYYY-MM-DD), type (income|expense), description, category (ID from list: cat-1: Alimentación, cat-2: Vivienda, cat-3: Transporte, cat-4: Suscripciones, cat-5: Ocio, cat-6: Ingresos, cat-7: Salud, cat-8: Educación), likely_recurring (boolean). Return JSON only.' },
+                    { type: 'image_url', image_url: { url: `data:${file.type};base64,${base64}` } }
+                ]
+            }],
+            response_format: { type: 'json_object' },
+            max_tokens: 500,
+        }),
+    });
+
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error?.message || 'Error con OpenAI Vision');
+    }
+
+    const data = await response.json();
+    const result = JSON.parse(data.choices[0].message.content);
+    return {
+        ...result,
+        confidence: 0.95
+    };
 }
 
 // ============================================================
@@ -62,9 +81,31 @@ export async function sendChatMessage(
         return responses[Math.floor(Math.random() * responses.length)];
     }
 
-    // TODO: Real OpenAI Chat API call
-    // const systemPrompt = `Eres Agente Daddy, un asistente financiero personal formal, eficiente y muy profesional, aunque conservas la imagen de un Husky. Tienes acceso a los datos financieros del usuario: ${contextJson}.
-    // REGLAS: Responde siempre en español. Sé conciso, educado y directo. Evita onomatopeyas de perros. Habla de forma correcta. Puedes usar algún emoticono ocasional (como 📊 o 💡) de forma sutil y justa para no resultar pesado.`;
-    // const response = await fetch('https://api.openai.com/v1/chat/completions', { ... });
-    throw new Error('Configure OpenAI API key in Settings');
+    // Real OpenAI Chat API call
+    const systemPrompt = `Eres Agente Daddy, un asistente financiero personal formal, eficiente y muy profesional, aunque conservas la imagen de un Husky. Tienes acceso a los datos financieros del usuario (resumen): ${contextJson}.
+    REGLAS: Responde siempre en español. Sé conciso, educado y directo. Evita onomatopeyas de perros ("Guau", "Auuu"). Habla de forma correcta. Puedes usar algún emoticono ocasional (como 📊 o 💡) de forma sutil y justa para no resultar pesado. Si el usuario te pregunta por sus gastos, usa la información proporcionada.`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [
+                { role: 'system', content: systemPrompt },
+                ...messages.map(m => ({ role: m.role, content: m.content }))
+            ],
+            max_tokens: 500,
+        }),
+    });
+
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error?.message || 'Error con OpenAI Chat');
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
 }
