@@ -8,13 +8,14 @@ export async function parseDocument(
     apiKey: string
 ): Promise<AIExtractedTransaction> {
     if (!apiKey || process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
+        if (!apiKey) console.warn('OpenAI API Key is missing. Using mock data.');
         // MOCK: simulated extracted data
         await new Promise((r) => setTimeout(r, 1500)); // simulate API delay
         return {
             amount: 124.50,
             date: new Date().toISOString().split('T')[0],
             type: 'expense',
-            description: `Factura ${file.name}`,
+            description: `[MOCK] Factura ${file.name}`,
             category_id: 'cat-2',
             likely_recurring: true,
             recurrence_days: 30,
@@ -41,7 +42,7 @@ export async function parseDocument(
             messages: [{
                 role: 'user',
                 content: [
-                    { type: 'text', text: 'Extract from this receipt: amount (number), date (YYYY-MM-DD), type (income|expense), description, category (ID from list: cat-1: Alimentación, cat-2: Vivienda, cat-3: Transporte, cat-4: Suscripciones, cat-5: Ocio, cat-6: Ingresos, cat-7: Salud, cat-8: Educación), likely_recurring (boolean), recurrence_days (number, optional). Return JSON only.' },
+                    { type: 'text', text: 'Analyze this receipt/invoice image or PDF. Extract EXACT data: amount (number), date (YYYY-MM-DD), type (income|expense), description (legal name of establishment or service), category (ID from list: cat-1: Alimentación, cat-2: Vivienda, cat-3: Transporte, cat-4: Suscripciones, cat-5: Ocio, cat-6: Ingresos, cat-7: Salud, cat-8: Educación), likely_recurring (boolean), recurrence_days (number, optional, e.g., 30 for monthly). BE PRECISE. Return JSON only.' },
                     { type: 'image_url', image_url: { url: `data:${file.type};base64,${base64}` } }
                 ]
             }],

@@ -3,12 +3,13 @@ import { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '@/lib/store';
 import { useRouter, usePathname } from 'next/navigation';
 import {
-    LayoutDashboard, ScanLine, CalendarDays, Clock, Bot, Settings, Plus, PenLine
+    LayoutDashboard, ScanLine, CalendarDays, Clock, Bot, Settings, Plus, PenLine, FileText
 } from 'lucide-react';
 
 const NAV_ITEMS = [
     { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard, href: '/dashboard' },
     { id: 'calendar', label: 'Calendario', icon: CalendarDays, href: '/calendar' },
+    { id: 'documents', label: 'Documentos', icon: FileText, href: '/documents' },
     { id: 'pending', label: 'Pendientes', icon: Clock, href: '/pending' },
 ];
 
@@ -44,6 +45,7 @@ export function Sidebar() {
     const MAIN_ITEMS = [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
         { id: 'calendar', label: 'Calendario', icon: CalendarDays, href: '/calendar' },
+        { id: 'documents', label: 'Documentos', icon: FileText, href: '/documents' },
         { id: 'pending', label: 'Pendientes', icon: Clock, href: '/pending' },
     ];
 

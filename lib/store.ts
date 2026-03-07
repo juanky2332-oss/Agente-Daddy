@@ -29,6 +29,8 @@ interface AppState {
     // UI
     activeTab: string;
     setActiveTab: (tab: string) => void;
+    selectedTransactionId: string | null;
+    setSelectedTransactionId: (id: string | null) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -75,6 +77,8 @@ export const useAppStore = create<AppState>()(
             // UI
             activeTab: 'dashboard',
             setActiveTab: (tab) => set({ activeTab: tab }),
+            selectedTransactionId: null,
+            setSelectedTransactionId: (id) => set({ selectedTransactionId: id }),
         }),
         {
             name: 'fintrack-storage',

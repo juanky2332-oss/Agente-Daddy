@@ -62,42 +62,67 @@ export default function CalendarPage() {
                 </div>
 
                 {/* Day Cells */}
-                <div className="cal-grid" style={{ gap: '4px' }}>
+                <div className="cal-grid">
                     {cells.map((date, i) => {
-                        if (!date) return <div key={i} />;
+                        if (!date) return <div key={i} className="cal-day other-month" />;
                         const ds = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                         const txs = txByDate[ds] || [];
-                        const hasIncome = txs.some(t => t.type === 'income');
-                        const hasExpense = txs.some(t => t.type === 'expense');
                         const isToday = ds === todayStr;
                         const isSelected = ds === selectedDay;
 
-                        const incomeTotal = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-                        const expenseTotal = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+                        const incomeTxs = txs.filter(t => t.type === 'income');
+                        const expenseTxs = txs.filter(t => t.type === 'expense');
 
                         return (
                             <div
                                 key={i}
-                                className={`cal-day ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} group relative`}
+                                className={`cal-day ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} group`}
                                 onClick={() => setSelectedDay(ds === selectedDay ? null : ds)}
-                                style={{ minHeight: '80px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', padding: '4px' }}
                             >
-                                <span style={{ fontSize: '0.9rem', fontWeight: 700, lineHeight: 1, marginBottom: '4px', alignSelf: 'center' }}>{date.getDate()}</span>
-                                <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '2px', flex: 1, overflow: 'hidden' }}>
-                                    {txs.slice(0, 3).map(t => (
-                                        <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', lineHeight: 1.2, background: t.type === 'income' ? 'var(--income-light)' : 'var(--expense-light)', color: t.type === 'income' ? 'var(--income)' : 'var(--expense)', padding: '2px 4px', borderRadius: '4px', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                                <span style={{
+                                    fontSize: '0.85rem',
+                                    fontWeight: 700,
+                                    marginBottom: '4px',
+                                    display: 'block',
+                                    width: '100%',
+                                    textAlign: 'center'
+                                }}>
+                                    {date.getDate()}
+                                </span>
+
+                                {/* DESKTOP VIEW: Details */}
+                                <div className="hidden md:flex flex-col w-100 gap-1 overflow-hidden" style={{ width: '100%' }}>
+                                    {txs.slice(0, 2).map(t => (
+                                        <div key={t.id} style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            fontSize: '0.6rem',
+                                            lineHeight: 1.1,
+                                            background: t.type === 'income' ? 'var(--income-light)' : 'var(--expense-light)',
+                                            color: t.type === 'income' ? 'var(--income)' : 'var(--expense)',
+                                            padding: '1px 3px',
+                                            borderRadius: '3px',
+                                            whiteSpace: 'nowrap',
+                                            overflow: 'hidden'
+                                        }}>
                                             <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', flex: 1 }}>{t.description}</span>
-                                            <span style={{ fontWeight: 700, marginLeft: '4px' }}>{t.amount.toFixed(0)}€</span>
+                                            <span style={{ fontWeight: 700, marginLeft: '2px' }}>{t.amount.toFixed(0)}€</span>
                                         </div>
                                     ))}
-                                    {txs.length > 3 && (
-                                        <div style={{ fontSize: '0.6rem', color: 'var(--gray-500)', textAlign: 'center', marginTop: '1px' }}>+{txs.length - 3} más</div>
+                                    {txs.length > 2 && (
+                                        <div style={{ fontSize: '0.55rem', color: 'var(--gray-500)', textAlign: 'center' }}>+{txs.length - 2}</div>
                                     )}
                                 </div>
 
-                                {/* Hover Tooltip */}
+                                {/* MOBILE VIEW: Dots */}
+                                <div className="flex md:hidden items-center justify-center gap-1 mt-auto w-full">
+                                    {incomeTxs.length > 0 && <div className="cal-dot cal-dot-income" style={{ width: 6, height: 6 }} />}
+                                    {expenseTxs.length > 0 && <div className="cal-dot cal-dot-expense" style={{ width: 6, height: 6 }} />}
+                                </div>
+
+                                {/* Hover Tooltip (Desktop) */}
                                 {txs.length > 0 && (
-                                    <div className="cal-tooltip">
+                                    <div className="cal-tooltip hidden md:block">
                                         <div style={{ fontWeight: 700, marginBottom: '6px', borderBottom: '1px solid #eee', paddingBottom: '4px' }}>{date.getDate()} {MONTHS[date.getMonth()]}</div>
                                         {txs.map(t => (
                                             <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '4px' }}>

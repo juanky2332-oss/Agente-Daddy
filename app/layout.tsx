@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { HuskyWidget } from '@/components/HuskyWidget';
 import { GlobalFAB } from '@/components/GlobalFAB';
+import { TransactionDetailModal } from '@/components/TransactionDetailModal';
 
 export const metadata: Metadata = {
   title: 'Agente Daddy',
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <GlobalFAB />
         <HuskyWidget />
+        <TransactionDetailModal />
       </body>
     </html>
   );
