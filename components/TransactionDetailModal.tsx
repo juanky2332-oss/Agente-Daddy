@@ -140,7 +140,7 @@ export function TransactionDetailModal() {
                                         overflow: 'hidden',
                                         background: 'var(--gray-50)'
                                     }}>
-                                        {tx.receipt_url.includes('blob:') || tx.receipt_url.startsWith('data:') ? (
+                                        {tx.receipt_url.includes('blob:') || tx.receipt_url.startsWith('data:') || tx.receipt_url.toLowerCase().includes('.pdf') ? (
                                             <iframe src={tx.receipt_url} width="100%" height="100%" style={{ border: 'none' }} />
                                         ) : (
                                             <img src={tx.receipt_url} alt="Documento adjunto" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
