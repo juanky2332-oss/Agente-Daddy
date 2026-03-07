@@ -1,8 +1,22 @@
 import { NextResponse } from 'next/server';
-const pdfParse = require('pdf-parse');
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
     try {
+        // Polyfills for pdf-parse in Node environment at runtime
+        if (typeof global.DOMMatrix === 'undefined') {
+            (global as any).DOMMatrix = class DOMMatrix { };
+        }
+        if (typeof global.ImageData === 'undefined') {
+            (global as any).ImageData = class ImageData { };
+        }
+        if (typeof global.Path2D === 'undefined') {
+            (global as any).Path2D = class Path2D { };
+        }
+
+        const pdfParse = require('pdf-parse');
+
         const formData = await req.formData();
         const file = formData.get('file') as File;
 
