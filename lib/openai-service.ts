@@ -42,7 +42,7 @@ export async function parseDocument(
             messages: [{
                 role: 'user',
                 content: [
-                    { type: 'text', text: 'Analyze this receipt/invoice image or PDF. Extract EXACT data: amount (number), date (YYYY-MM-DD), type (income|expense), description (legal name of establishment or service), category (ID from list: cat-1: Alimentación, cat-2: Vivienda, cat-3: Transporte, cat-4: Suscripciones, cat-5: Ocio, cat-6: Ingresos, cat-7: Salud, cat-8: Educación), likely_recurring (boolean), recurrence_days (number, optional, e.g., 30 for monthly). BE PRECISE. Return JSON only.' },
+                    { type: 'text', text: 'Analyze this receipt/invoice image or PDF. Extract EXACT data. IMPORTANT FOR AMOUNT: You MUST extract the FINAL TOTAL AMOUNT to pay including all taxes (IVA). DO NOT extract subtotals or tax bases. Fields needed: amount (number), date (YYYY-MM-DD), type (income|expense), description (legal name of establishment or service), category (ID from list: cat-1: Alimentación, cat-2: Vivienda, cat-3: Transporte, cat-4: Suscripciones, cat-5: Ocio, cat-6: Ingresos, cat-7: Salud, cat-8: Educación), likely_recurring (boolean), recurrence_days (number, optional, e.g., 30 for monthly). BE PRECISE. Return purely the JSON object without markdown formatting.' },
                     { type: 'image_url', image_url: { url: `data:${file.type};base64,${base64}` } }
                 ]
             }],
@@ -57,7 +57,12 @@ export async function parseDocument(
     }
 
     const data = await response.json();
-    const result = JSON.parse(data.choices[0].message.content);
+    let content = data.choices[0].message.content;
+
+    // Clean potential markdown blocks from the response
+    content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+    const result = JSON.parse(content);
     return {
         ...result,
         confidence: 0.95
