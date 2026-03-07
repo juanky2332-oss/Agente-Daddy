@@ -46,6 +46,12 @@ function SettingsContent() {
         ) : null;
 
     useEffect(() => {
+        setApiKey(settings.openai_api_key || '');
+        setTelegramToken(settings.telegram_bot_token || '');
+        setNotifyDays(settings.notification_days_advance || 3);
+    }, [settings.openai_api_key, settings.telegram_bot_token, settings.notification_days_advance]);
+
+    useEffect(() => {
         const syncGoogleCalendar = async () => {
             const gToken = searchParams.get('g_token');
             if (gToken) {

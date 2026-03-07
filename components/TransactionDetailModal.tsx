@@ -110,12 +110,19 @@ export function TransactionDetailModal() {
                             </div>
 
                             {/* Acciones Rápidas */}
-                            <div style={{ display: 'flex', gap: '12px' }}>
-                                <button className="btn btn-ghost flex-1" onClick={() => setIsEditing(true)}>
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setIsEditing(true)}>
                                     <Edit3 size={18} /> Editar
                                 </button>
-                                <button className="btn btn-ghost flex-1" style={{ color: 'var(--expense)', borderColor: 'var(--expense-border)' }} onClick={handleDelete}>
-                                    <Trash2 size={18} color="var(--expense)" /> Eliminar
+                                <button
+                                    className="btn btn-ghost"
+                                    style={{ flex: 1, color: tx.is_confirmed ? 'var(--expense)' : 'var(--income)', borderColor: tx.is_confirmed ? 'var(--expense-border)' : 'var(--income-border)' }}
+                                    onClick={() => updateTransaction(tx.id, { is_confirmed: !tx.is_confirmed })}
+                                >
+                                    {tx.is_confirmed ? 'Marcar Pendiente' : 'Confirmar Gasto'}
+                                </button>
+                                <button className="btn btn-icon" style={{ flex: 'none', color: 'var(--expense)', borderColor: 'var(--expense-border)' }} onClick={handleDelete}>
+                                    <Trash2 size={18} color="var(--expense)" />
                                 </button>
                             </div>
 

@@ -9,7 +9,7 @@ export default function DocumentsPage() {
     // Filters state
     const [search, setSearch] = useState('');
     const [yearFilter, setYearFilter] = useState(new Date().getFullYear().toString());
-    const [monthFilter, setMonthFilter] = useState((new Date().getMonth() + 1).toString());
+    const [monthFilter, setMonthFilter] = useState('all');
 
     // Available years for filter
     const years = useMemo(() => {
@@ -19,6 +19,7 @@ export default function DocumentsPage() {
     }, [transactions]);
 
     const months = [
+        { v: 'all', n: 'Todo el año' },
         { v: '1', n: 'Enero' }, { v: '2', n: 'Febrero' }, { v: '3', n: 'Marzo' },
         { v: '4', n: 'Abril' }, { v: '5', n: 'Mayo' }, { v: '6', n: 'Junio' },
         { v: '7', n: 'Julio' }, { v: '8', n: 'Agosto' }, { v: '9', n: 'Septiembre' },
@@ -30,7 +31,7 @@ export default function DocumentsPage() {
         return transactions.filter(t => {
             const date = new Date(t.date);
             const matchesYear = date.getFullYear().toString() === yearFilter;
-            const matchesMonth = (date.getMonth() + 1).toString() === monthFilter;
+            const matchesMonth = monthFilter === 'all' || (date.getMonth() + 1).toString() === monthFilter;
             const matchesSearch = t.description.toLowerCase().includes(search.toLowerCase());
             const hasDocument = !!t.receipt_url;
             return matchesYear && matchesMonth && matchesSearch && hasDocument;
