@@ -7,20 +7,8 @@ export async function parseDocument(
     file: File,
     apiKey: string
 ): Promise<AIExtractedTransaction> {
-    if (!apiKey || process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
-        if (!apiKey) console.warn('OpenAI API Key is missing. Using mock data.');
-        // MOCK: simulated extracted data
-        await new Promise((r) => setTimeout(r, 1500)); // simulate API delay
-        return {
-            amount: 124.50,
-            date: new Date().toISOString().split('T')[0],
-            type: 'expense',
-            description: `[MOCK] Factura ${file.name}`,
-            category_id: 'cat-2',
-            likely_recurring: true,
-            recurrence_days: 30,
-            confidence: 0.92,
-        };
+    if (!apiKey) {
+        throw new Error('⚠️ ¡Falta tu API Key de OpenAI!\n\nVe a Ajustes (⚙️) > API OpenAI y pega tu clave secreta para que la IA pueda analizar los recibos mágicamente.');
     }
 
     // Real OpenAI Vision API call
@@ -77,15 +65,8 @@ export async function sendChatMessage(
     apiKey: string,
     contextJson: string
 ): Promise<string> {
-    if (!apiKey || process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
-        await new Promise((r) => setTimeout(r, 1000));
-        const responses = [
-            'He analizado tu balance. Actualmente has gastado un total de 1.017,48 € este mes. Te sugiero revisar la partida de alquiler (850 €).',
-            'Tu balance actual es de +1.382,52 €. Tienes un buen margen, pero te recomiendo supervisar tus suscripciones activas para optimizar gastos.',
-            'Comparando con el mes anterior, has reducido un 12% tus gastos en ocio. Si mantienes esta tendencia, podrías ahorrar unos 300 € adicionales.',
-            'Según mis proyecciones, finalizarás el mes con un balance positivo estimado de +1.100 €. Buen trabajo gestionando tus finanzas. 📊',
-        ];
-        return responses[Math.floor(Math.random() * responses.length)];
+    if (!apiKey) {
+        throw new Error('⚠️ ¡Falta tu API Key de OpenAI!\n\nVe a Ajustes (⚙️) y añade tu clave secreta para usar a Husky.');
     }
 
     // Real OpenAI Chat API call
