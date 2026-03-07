@@ -2,18 +2,26 @@
 import { useState } from 'react';
 import { useAppStore } from '@/lib/store';
 import { TransactionItem } from '@/components/TransactionItem';
-import { CheckCircle, Trash2, Edit3, Clock, AlertCircle } from 'lucide-react';
+import { CheckCircle, Trash2, Edit3, Clock, AlertCircle, Plus, X, Save, TrendingUp } from 'lucide-react';
 
 export default function PendingPage() {
-    const { transactions, updateTransaction, deleteTransaction } = useAppStore();
+    const { transactions, updateTransaction, deleteTransaction, addTransaction, categories } = useAppStore();
     const [confirmingId, setConfirmingId] = useState<string | null>(null);
-
 
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editForm, setEditForm] = useState({ amount: 0, date: '', description: '', category_id: '' });
 
+    // State for manual pending income
+    const [isAddingIncome, setIsAddingIncome] = useState(false);
+    const [newIncomeForm, setNewIncomeForm] = useState({
+        amount: '',
+        date: new Date().toISOString().split('T')[0],
+        description: '',
+        category_id: categories.find(c => c.name.toLowerCase().includes('otro'))?.id || categories[0]?.id || ''
+    });
+
     const pending = transactions
-        .filter((t) => !t.is_confirmed && t.is_recurring)
+        .filter((t) => !t.is_confirmed)
         .sort((a, b) => b.date.localeCompare(a.date));
 
     const handleConfirm = (id: string) => {
@@ -37,21 +45,115 @@ export default function PendingPage() {
         setEditingId(null);
     };
 
+    const handleAddPendingIncome = () => {
+        if (!newIncomeForm.amount || !newIncomeForm.description) return;
+
+        addTransaction({
+            id: Math.random().toString(36).substring(2, 9),
+            amount: parseFloat(newIncomeForm.amount),
+            date: newIncomeForm.date,
+            description: newIncomeForm.description,
+            category_id: newIncomeForm.category_id,
+            type: 'income',
+            is_confirmed: false,
+            is_recurring: false,
+            source: 'manual'
+        });
+
+        setIsAddingIncome(false);
+        setNewIncomeForm({
+            amount: '',
+            date: new Date().toISOString().split('T')[0],
+            description: '',
+            category_id: categories.find(c => c.name.toLowerCase().includes('otro'))?.id || categories[0]?.id || ''
+        });
+    };
+
     return (
         <div className="page-container">
             <div className="flex items-center justify-between mb-4">
                 <div>
                     <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Pendientes ⏳</h1>
                     <p style={{ color: 'var(--gray-500)', fontSize: '0.875rem', marginTop: '2px' }}>
-                        Transacciones periódicas sin confirmar
+                        Cobros y pagos por confirmar
                     </p>
                 </div>
-                {pending.length > 0 && (
-                    <div style={{ background: 'var(--expense-light)', color: 'var(--expense)', borderRadius: 'var(--radius-full)', padding: '4px 12px', fontWeight: 700, fontSize: '0.875rem' }}>
-                        {pending.length}
-                    </div>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {pending.length > 0 && (
+                        <div style={{ background: 'var(--gray-100)', color: 'var(--gray-600)', borderRadius: 'var(--radius-full)', padding: '4px 12px', fontWeight: 700, fontSize: '0.875rem' }}>
+                            {pending.length}
+                        </div>
+                    )}
+                    <button
+                        onClick={() => setIsAddingIncome(!isAddingIncome)}
+                        style={{
+                            background: 'var(--income)', color: 'white', border: 'none',
+                            width: '36px', height: '36px', borderRadius: 'var(--radius-full)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer', transition: 'transform 0.2s',
+                            boxShadow: '0 2px 8px rgba(22, 163, 74, 0.3)'
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                    >
+                        {isAddingIncome ? <X size={20} /> : <Plus size={20} />}
+                    </button>
+                </div>
             </div>
+
+            {isAddingIncome && (
+                <div className="card slide-down" style={{ marginBottom: '20px', border: '2px solid var(--income-light)', background: 'white' }}>
+                    <div style={{ padding: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                            <div style={{ background: 'var(--income-light)', color: 'var(--income)', padding: '6px', borderRadius: 'var(--radius-md)' }}>
+                                <TrendingUp size={18} />
+                            </div>
+                            <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Nuevo Ingreso Pendiente</h3>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <div className="form-group">
+                                <label className="label">Importe Esperado (€)</label>
+                                <input
+                                    className="input"
+                                    type="number"
+                                    placeholder="0.00"
+                                    value={newIncomeForm.amount}
+                                    onChange={e => setNewIncomeForm({ ...newIncomeForm, amount: e.target.value })}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="label">¿De qué se trata?</label>
+                                <input
+                                    className="input"
+                                    type="text"
+                                    placeholder="Ej: Venta Wallapop, Bizum pendiente..."
+                                    value={newIncomeForm.description}
+                                    onChange={e => setNewIncomeForm({ ...newIncomeForm, description: e.target.value })}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="label">Fecha prevista</label>
+                                <input
+                                    className="input"
+                                    type="date"
+                                    value={newIncomeForm.date}
+                                    onChange={e => setNewIncomeForm({ ...newIncomeForm, date: e.target.value })}
+                                />
+                            </div>
+
+                            <button
+                                className="btn btn-primary"
+                                style={{ marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                                onClick={handleAddPendingIncome}
+                                disabled={!newIncomeForm.amount || !newIncomeForm.description}
+                            >
+                                <Save size={18} /> Registrar Pendiente
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {pending.length === 0 ? (
                 <div className="card empty-state">
@@ -73,8 +175,19 @@ export default function PendingPage() {
                         <div key={tx.id} className="card" style={{ padding: '0' }}>
                             <div style={{ padding: '16px 16px 12px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                                    <Clock size={14} color="var(--gray-400)" />
-                                    <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recurrente pendiente</span>
+                                    {tx.is_recurring ? (
+                                        <>
+                                            <Clock size={14} color="var(--gray-400)" />
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recurrente pendiente</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: tx.type === 'income' ? 'var(--income)' : 'var(--expense)' }} />
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                {tx.type === 'income' ? 'Ingreso pendiente' : 'Gasto pendiente'}
+                                            </span>
+                                        </>
+                                    )}
                                 </div>
 
                                 {editingId === tx.id ? (
