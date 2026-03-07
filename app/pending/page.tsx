@@ -1,8 +1,9 @@
 'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { TransactionItem } from '@/components/TransactionItem';
-import { CheckCircle, Trash2, Edit3, Clock, AlertCircle, Plus, X, Save, TrendingUp } from 'lucide-react';
+import { CheckCircle, Trash2, Edit3, Clock, AlertCircle, Plus, X, Save, TrendingUp, ScanLine } from 'lucide-react';
 
 export default function PendingPage() {
     const { transactions, updateTransaction, deleteTransaction, addTransaction, categories } = useAppStore();
@@ -11,14 +12,35 @@ export default function PendingPage() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editForm, setEditForm] = useState({ amount: 0, date: '', description: '', category_id: '' });
 
+    const router = useRouter();
     // State for manual pending income
     const [isAddingIncome, setIsAddingIncome] = useState(false);
     const [newIncomeForm, setNewIncomeForm] = useState({
         amount: '',
         date: new Date().toISOString().split('T')[0],
         description: '',
-        category_id: categories.find(c => c.name.toLowerCase().includes('otro'))?.id || categories[0]?.id || ''
+        category_id: categories.find(c => c.name.toLowerCase().includes('ingreso'))?.id || categories[0]?.id || '',
+        is_recurring: false,
+        recurrence_days: 30
     });
+
+    // State for manual pending expense
+    const [isAddingExpense, setIsAddingExpense] = useState(false);
+    const [newExpenseForm, setNewExpenseForm] = useState({
+        amount: '',
+        date: new Date().toISOString().split('T')[0],
+        description: '',
+        category_id: categories[0]?.id || '',
+        is_recurring: false,
+        recurrence_days: 30
+    });
+
+    const PERIODS = [
+        { label: 'Puntual', days: 0 },
+        { label: 'Mensual', days: 30 },
+        { label: 'Semanal', days: 7 },
+        { label: 'Anual', days: 365 },
+    ];
 
     const pending = transactions
         .filter((t) => !t.is_confirmed)
@@ -37,7 +59,14 @@ export default function PendingPage() {
 
     const startEdit = (tx: any) => {
         setEditingId(tx.id);
-        setEditForm({ amount: tx.amount, date: tx.date, description: tx.description, category_id: tx.category_id });
+        setEditForm({
+            amount: tx.amount,
+            date: tx.date,
+            description: tx.description,
+            category_id: tx.category_id,
+            is_recurring: tx.is_recurring,
+            recurrence_days: tx.recurrence_days || 30
+        } as any);
     };
 
     const saveEdit = (id: string) => {
@@ -56,7 +85,8 @@ export default function PendingPage() {
             category_id: newIncomeForm.category_id,
             type: 'income',
             is_confirmed: false,
-            is_recurring: false,
+            is_recurring: newIncomeForm.is_recurring,
+            recurrence_days: newIncomeForm.is_recurring ? newIncomeForm.recurrence_days : undefined,
             source: 'manual'
         });
 
@@ -65,7 +95,36 @@ export default function PendingPage() {
             amount: '',
             date: new Date().toISOString().split('T')[0],
             description: '',
-            category_id: categories.find(c => c.name.toLowerCase().includes('otro'))?.id || categories[0]?.id || ''
+            category_id: categories.find(c => c.name.toLowerCase().includes('ingreso'))?.id || categories[0]?.id || '',
+            is_recurring: false,
+            recurrence_days: 30
+        });
+    };
+
+    const handleAddPendingExpense = () => {
+        if (!newExpenseForm.amount || !newExpenseForm.description) return;
+
+        addTransaction({
+            id: Math.random().toString(36).substring(2, 9),
+            amount: parseFloat(newExpenseForm.amount),
+            date: newExpenseForm.date,
+            description: newExpenseForm.description,
+            category_id: newExpenseForm.category_id,
+            type: 'expense',
+            is_confirmed: false,
+            is_recurring: newExpenseForm.is_recurring,
+            recurrence_days: newExpenseForm.is_recurring ? newExpenseForm.recurrence_days : undefined,
+            source: 'manual'
+        });
+
+        setIsAddingExpense(false);
+        setNewExpenseForm({
+            amount: '',
+            date: new Date().toISOString().split('T')[0],
+            description: '',
+            category_id: categories[0]?.id || '',
+            is_recurring: false,
+            recurrence_days: 30
         });
     };
 
@@ -85,7 +144,7 @@ export default function PendingPage() {
                         </div>
                     )}
                     <button
-                        onClick={() => setIsAddingIncome(!isAddingIncome)}
+                        onClick={() => { setIsAddingIncome(!isAddingIncome); setIsAddingExpense(false); }}
                         style={{
                             background: 'var(--income)', color: 'white', border: 'none',
                             width: '36px', height: '36px', borderRadius: 'var(--radius-full)',
@@ -95,8 +154,24 @@ export default function PendingPage() {
                         }}
                         onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
                         onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                        title="Añadir ingreso pendiente"
                     >
                         {isAddingIncome ? <X size={20} /> : <Plus size={20} />}
+                    </button>
+                    <button
+                        onClick={() => { setIsAddingExpense(!isAddingExpense); setIsAddingIncome(false); }}
+                        style={{
+                            background: 'var(--expense)', color: 'white', border: 'none',
+                            width: '36px', height: '36px', borderRadius: 'var(--radius-full)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer', transition: 'transform 0.2s',
+                            boxShadow: '0 2px 8px rgba(220, 38, 38, 0.3)'
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                        title="Añadir gasto pendiente"
+                    >
+                        {isAddingExpense ? <X size={20} /> : <Plus size={20} />}
                     </button>
                 </div>
             </div>
@@ -142,14 +217,120 @@ export default function PendingPage() {
                                 />
                             </div>
 
-                            <button
-                                className="btn btn-primary"
-                                style={{ marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                                onClick={handleAddPendingIncome}
-                                disabled={!newIncomeForm.amount || !newIncomeForm.description}
-                            >
-                                <Save size={18} /> Registrar Pendiente
-                            </button>
+                            <div className="form-group">
+                                <label className="label">Periodicidad</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                                    {PERIODS.map(p => (
+                                        <button
+                                            key={p.days}
+                                            type="button"
+                                            className={`btn btn-sm ${((!newIncomeForm.is_recurring && p.days === 0) || (newIncomeForm.is_recurring && newIncomeForm.recurrence_days === p.days)) ? 'btn-primary' : 'btn-ghost'}`}
+                                            onClick={() => setNewIncomeForm(f => ({ ...f, is_recurring: p.days > 0, recurrence_days: p.days }))}
+                                            style={{ fontSize: '0.7rem', padding: '6px 2px' }}
+                                        >
+                                            {p.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                                <button
+                                    className="btn btn-primary"
+                                    style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                                    onClick={handleAddPendingIncome}
+                                    disabled={!newIncomeForm.amount || !newIncomeForm.description}
+                                >
+                                    <Save size={18} /> Registrar
+                                </button>
+                                <button
+                                    className="btn btn-ghost"
+                                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: 'var(--gray-100)' }}
+                                    onClick={() => router.push('/scanner?tab=scan')}
+                                >
+                                    <ScanLine size={18} /> Escanear
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {isAddingExpense && (
+                <div className="card slide-down" style={{ marginBottom: '20px', border: '2px solid var(--expense-light)', background: 'white' }}>
+                    <div style={{ padding: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                            <div style={{ background: 'var(--expense-light)', color: 'var(--expense)', padding: '6px', borderRadius: 'var(--radius-md)' }}>
+                                <Clock size={18} />
+                            </div>
+                            <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Nuevo Gasto Pendiente</h3>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <div className="form-group">
+                                <label className="label">Importe Estimado (€)</label>
+                                <input
+                                    className="input"
+                                    type="number"
+                                    placeholder="0.00"
+                                    value={newExpenseForm.amount}
+                                    onChange={e => setNewExpenseForm({ ...newExpenseForm, amount: e.target.value })}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="label">¿De qué se trata?</label>
+                                <input
+                                    className="input"
+                                    type="text"
+                                    placeholder="Ej: Factura luz, Alquiler próximamente..."
+                                    value={newExpenseForm.description}
+                                    onChange={e => setNewExpenseForm({ ...newExpenseForm, description: e.target.value })}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="label">Fecha prevista</label>
+                                <input
+                                    className="input"
+                                    type="date"
+                                    value={newExpenseForm.date}
+                                    onChange={e => setNewExpenseForm({ ...newExpenseForm, date: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label className="label">Periodicidad</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                                    {PERIODS.map(p => (
+                                        <button
+                                            key={p.days}
+                                            type="button"
+                                            className={`btn btn-sm ${((!newExpenseForm.is_recurring && p.days === 0) || (newExpenseForm.is_recurring && newExpenseForm.recurrence_days === p.days)) ? 'btn-primary' : 'btn-ghost'}`}
+                                            onClick={() => setNewExpenseForm(f => ({ ...f, is_recurring: p.days > 0, recurrence_days: p.days }))}
+                                            style={{ fontSize: '0.7rem', padding: '6px 2px' }}
+                                        >
+                                            {p.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                                <button
+                                    className="btn btn-primary"
+                                    style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: 'var(--expense)' }}
+                                    onClick={handleAddPendingExpense}
+                                    disabled={!newExpenseForm.amount || !newExpenseForm.description}
+                                >
+                                    <Save size={18} /> Registrar
+                                </button>
+                                <button
+                                    className="btn btn-ghost"
+                                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: 'var(--gray-100)' }}
+                                    onClick={() => router.push('/scanner?tab=scan')}
+                                >
+                                    <ScanLine size={18} /> Escanear
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -203,6 +384,19 @@ export default function PendingPage() {
                                         <div className="form-group">
                                             <label className="label">Concepto</label>
                                             <input className="input" type="text" value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} />
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="label">Periodicidad</label>
+                                            <select
+                                                className="select"
+                                                value={(editForm as any).is_recurring ? ((editForm as any).recurrence_days || 30) : 0}
+                                                onChange={(e) => {
+                                                    const days = parseInt(e.target.value);
+                                                    setEditForm({ ...editForm, is_recurring: days > 0, recurrence_days: days > 0 ? days : undefined } as any);
+                                                }}
+                                            >
+                                                {PERIODS.map(p => <option key={p.days} value={p.days}>{p.label}</option>)}
+                                            </select>
                                         </div>
                                         <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
                                             <button className="btn btn-primary btn-sm flex-1" onClick={() => saveEdit(tx.id)}>Guardar</button>

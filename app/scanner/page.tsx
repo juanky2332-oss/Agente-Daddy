@@ -36,7 +36,17 @@ function ScannerContent() {
     const [manualForm, setManualForm] = useState({
         amount: '', date: new Date().toISOString().split('T')[0],
         type: 'expense' as TransactionType, description: '', category_id: 'cat-1',
+        is_recurring: false, recurrence_days: 30
     });
+
+    const PERIODS = [
+        { label: 'Puntual', days: 0 },
+        { label: 'Diario', days: 1 },
+        { label: 'Semanal', days: 7 },
+        { label: 'Mensual', days: 30 },
+        { label: 'Trimestral', days: 90 },
+        { label: 'Anual', days: 365 },
+    ];
 
     const handleFile = useCallback(async (f: File) => {
         setFile(f);
@@ -75,6 +85,7 @@ function ScannerContent() {
             ...extracted, id: `t-${Date.now()}`,
             is_confirmed: !pending, source: 'auto',
             is_recurring: extracted.likely_recurring || false,
+            recurrence_days: extracted.likely_recurring ? (extracted.recurrence_days || 30) : undefined,
             receipt_url: filePreviewUrl || undefined
         });
         setSaved(true);
@@ -94,9 +105,11 @@ function ScannerContent() {
             type: manualForm.type,
             description: manualForm.description,
             category_id: manualForm.category_id,
-            is_recurring: false, is_confirmed: true, source: 'manual',
+            is_recurring: manualForm.is_recurring,
+            recurrence_days: manualForm.is_recurring ? manualForm.recurrence_days : undefined,
+            is_confirmed: true, source: 'manual',
         });
-        setManualForm({ amount: '', date: new Date().toISOString().split('T')[0], type: 'expense', description: '', category_id: 'cat-1' });
+        setManualForm({ amount: '', date: new Date().toISOString().split('T')[0], type: 'expense', description: '', category_id: 'cat-1', is_recurring: false, recurrence_days: 30 });
         setSaved(true);
         setTimeout(() => setSaved(false), 3000);
     };
@@ -168,12 +181,12 @@ function ScannerContent() {
                                     <p style={{ fontWeight: 700, marginBottom: '6px' }}>¿Es un pago recurrente?</p>
                                     <p style={{ fontSize: '0.875rem', color: 'var(--gray-600)', marginBottom: '14px' }}>La IA detectó que podría ser un pago periódico. ¿Con qué frecuencia se repite?</p>
                                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                        {[{ label: 'Mensual', days: 30 }, { label: 'Semanal', days: 7 }, { label: 'Anual', days: 365 }].map(opt => (
-                                            <button key={opt.days} className="btn btn-ghost btn-sm" onClick={() => { setExtracted({ ...extracted, likely_recurring: true }); setShowRecurringPrompt(false); }}>
+                                        {PERIODS.filter(p => p.days > 0).map(opt => (
+                                            <button key={opt.days} className="btn btn-ghost btn-sm" onClick={() => { setExtracted({ ...extracted, likely_recurring: true, recurrence_days: opt.days } as any); setShowRecurringPrompt(false); }}>
                                                 {opt.label}
                                             </button>
                                         ))}
-                                        <button className="btn btn-ghost btn-sm" onClick={() => setShowRecurringPrompt(false)}>No, puntual</button>
+                                        <button className="btn btn-ghost btn-sm" onClick={() => { setExtracted({ ...extracted, likely_recurring: false } as any); setShowRecurringPrompt(false); }}>No, puntual</button>
                                     </div>
                                 </div>
                             </div>
@@ -252,6 +265,23 @@ function ScannerContent() {
                                                 <label className="label">Categoría</label>
                                                 <select className="select" value={extracted.category_id} onChange={(e) => setExtracted({ ...extracted, category_id: e.target.value })}>
                                                     {CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="form-group">
+                                                <label className="label">¿Se repite?</label>
+                                                <select
+                                                    className="select"
+                                                    value={extracted.likely_recurring ? (extracted.recurrence_days || 30) : 0}
+                                                    onChange={(e) => {
+                                                        const days = parseInt(e.target.value);
+                                                        setExtracted({
+                                                            ...extracted,
+                                                            likely_recurring: days > 0,
+                                                            recurrence_days: days > 0 ? days : undefined
+                                                        } as any);
+                                                    }}
+                                                >
+                                                    {PERIODS.map(p => <option key={p.days} value={p.days}>{p.label}</option>)}
                                                 </select>
                                             </div>
                                             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
@@ -333,6 +363,23 @@ function ScannerContent() {
                     <div className="form-group">
                         <label className="label">Descripción *</label>
                         <input className="input" type="text" placeholder="Ej: Mercadona, Alquiler, Nómina…" required value={manualForm.description} onChange={(e) => setManualForm(f => ({ ...f, description: e.target.value }))} />
+                    </div>
+
+                    <div className="form-group">
+                        <label className="label">Periodicidad</label>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                            {PERIODS.map(p => (
+                                <button
+                                    key={p.days}
+                                    type="button"
+                                    className={`btn btn-sm ${((!manualForm.is_recurring && p.days === 0) || (manualForm.is_recurring && manualForm.recurrence_days === p.days)) ? 'btn-primary' : 'btn-ghost'}`}
+                                    onClick={() => setManualForm(f => ({ ...f, is_recurring: p.days > 0, recurrence_days: p.days }))}
+                                    style={{ fontSize: '0.75rem', padding: '6px 4px' }}
+                                >
+                                    {p.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     <button type="submit" className="btn btn-primary btn-lg w-full" style={{ marginTop: '8px' }}>

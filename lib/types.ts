@@ -69,5 +69,6 @@ export interface AIExtractedTransaction {
   description: string;
   category_id: string;
   likely_recurring: boolean;
+  recurrence_days?: number;
   confidence: number; // 0-1
 }

@@ -17,6 +17,7 @@ export async function parseDocument(
             description: `Factura ${file.name}`,
             category_id: 'cat-2',
             likely_recurring: true,
+            recurrence_days: 30,
             confidence: 0.92,
         };
     }
@@ -40,7 +41,7 @@ export async function parseDocument(
             messages: [{
                 role: 'user',
                 content: [
-                    { type: 'text', text: 'Extract from this receipt: amount (number), date (YYYY-MM-DD), type (income|expense), description, category (ID from list: cat-1: Alimentación, cat-2: Vivienda, cat-3: Transporte, cat-4: Suscripciones, cat-5: Ocio, cat-6: Ingresos, cat-7: Salud, cat-8: Educación), likely_recurring (boolean). Return JSON only.' },
+                    { type: 'text', text: 'Extract from this receipt: amount (number), date (YYYY-MM-DD), type (income|expense), description, category (ID from list: cat-1: Alimentación, cat-2: Vivienda, cat-3: Transporte, cat-4: Suscripciones, cat-5: Ocio, cat-6: Ingresos, cat-7: Salud, cat-8: Educación), likely_recurring (boolean), recurrence_days (number, optional). Return JSON only.' },
                     { type: 'image_url', image_url: { url: `data:${file.type};base64,${base64}` } }
                 ]
             }],
