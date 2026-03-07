@@ -2,6 +2,7 @@
 import { useState, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
+import { supabase } from '@/lib/supabase';
 import { parseDocument } from '@/lib/openai-service';
 import { AIExtractedTransaction, TransactionType } from '@/lib/types';
 import { ScanLine, PenLine, Upload, CheckCircle, X, Edit3, RefreshCw, AlertCircle, Eye } from 'lucide-react';
@@ -28,6 +29,7 @@ function ScannerContent() {
     const [editMode, setEditMode] = useState(false);
     const [showRecurringPrompt, setShowRecurringPrompt] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
     const [showPreview, setShowPreview] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -79,20 +81,59 @@ function ScannerContent() {
         if (f) handleFile(f);
     };
 
-    const confirmTransaction = (pending = false) => {
+    const confirmTransaction = async (pending = false) => {
         if (!extracted) return;
-        addTransaction({
-            ...extracted, id: `t-${Date.now()}`,
-            is_confirmed: !pending, source: 'auto',
-            is_recurring: extracted.likely_recurring || false,
-            recurrence_days: extracted.likely_recurring ? (extracted.recurrence_days || 30) : undefined,
-            receipt_url: filePreviewUrl || undefined
-        });
-        setSaved(true);
-        setFile(null); setExtracted(null); setEditMode(false);
-        // We do not revoke the URL immediately here because it is saved in the state for the receipt view. 
-        // In a real app, you would upload it to a server.
-        setFilePreviewUrl(null);
+
+        setSaved(true); // Usamos setSaved temporalmente como indicador de "Cargando..."
+        let finalReceiptUrl = undefined;
+
+        try {
+            if (file) {
+                // Generar nombre de archivo único
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+                const filePath = `receipts/${fileName}`;
+
+                // Subir a Supabase Storage
+                const { error: uploadError } = await supabase.storage
+                    .from('receipts')
+                    .upload(filePath, file);
+
+                if (uploadError) {
+                    throw uploadError;
+                }
+
+                // Obtener URL pública
+                const { data } = supabase.storage
+                    .from('receipts')
+                    .getPublicUrl(filePath);
+
+                finalReceiptUrl = data.publicUrl;
+            }
+
+            addTransaction({
+                ...extracted, id: `t-${Date.now()}`,
+                is_confirmed: !pending, source: 'auto',
+                is_recurring: extracted.likely_recurring || false,
+                recurrence_days: extracted.likely_recurring ? (extracted.recurrence_days || 30) : undefined,
+                receipt_url: finalReceiptUrl
+            });
+
+            // Cleanup
+            setFile(null);
+            setExtracted(null);
+            setEditMode(false);
+            if (filePreviewUrl) URL.revokeObjectURL(filePreviewUrl);
+            setFilePreviewUrl(null);
+
+            // Mostrar "Guardado con éxito" ocultando el estado de carga después de 3s
+            setTimeout(() => setSaved(false), 3000);
+
+        } catch (error) {
+            console.error('Error uploading file:', error);
+            alert('Hubo un error al subir el documento. Revisa tu conexión.');
+            setSaved(false);
+        }
     };
 
     const handleManualSubmit = (e: React.FormEvent) => {
@@ -285,13 +326,14 @@ function ScannerContent() {
                                                 </select>
                                             </div>
                                             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
-                                                <button className="btn btn-primary flex items-center gap-2 justify-center" style={{ flex: 1 }} onClick={() => confirmTransaction(false)}>
-                                                    <CheckCircle size={16} /> Confirmar guardado
+                                                <button disabled={isUploading} className="btn btn-primary flex items-center gap-2 justify-center" style={{ flex: 1, opacity: isUploading ? 0.7 : 1 }} onClick={() => confirmTransaction(false)}>
+                                                    {isUploading ? <div className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px' }} /> : <CheckCircle size={16} />}
+                                                    {isUploading ? 'Subiendo...' : 'Confirmar guardado'}
                                                 </button>
-                                                <button className="btn btn-ghost btn-icon" title="Guardar como pendiente" onClick={() => confirmTransaction(true)}>
+                                                <button disabled={isUploading} className="btn btn-ghost btn-icon" style={{ opacity: isUploading ? 0.5 : 1 }} title="Guardar como pendiente" onClick={() => confirmTransaction(true)}>
                                                     <RefreshCw size={16} />
                                                 </button>
-                                                <button className="btn btn-icon" style={{ background: 'var(--expense-light)', color: 'var(--expense)' }} title="Rechazar y descartar" onClick={() => { setExtracted(null); setFile(null); setShowPreview(false); }}>
+                                                <button disabled={isUploading} className="btn btn-icon" style={{ background: 'var(--expense-light)', color: 'var(--expense)', opacity: isUploading ? 0.5 : 1 }} title="Rechazar y descartar" onClick={() => { setExtracted(null); setFile(null); setShowPreview(false); }}>
                                                     <X size={16} />
                                                 </button>
                                             </div>
@@ -317,16 +359,17 @@ function ScannerContent() {
                                     {/* Action Buttons */}
                                     {!editMode && (
                                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                            <button className="btn btn-primary flex items-center gap-2" style={{ flex: 1 }} onClick={() => confirmTransaction(false)}>
-                                                <CheckCircle size={16} /> Confirmar
+                                            <button disabled={isUploading} className="btn btn-primary flex items-center gap-2 justify-center" style={{ flex: 1, opacity: isUploading ? 0.7 : 1 }} onClick={() => confirmTransaction(false)}>
+                                                {isUploading ? <div className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px' }} /> : <CheckCircle size={16} />}
+                                                {isUploading ? 'Subiendo...' : 'Confirmar'}
                                             </button>
-                                            <button className="btn btn-ghost btn-icon" title="Editar" onClick={() => setEditMode(true)}>
+                                            <button disabled={isUploading} className="btn btn-ghost btn-icon" style={{ opacity: isUploading ? 0.5 : 1 }} title="Editar" onClick={() => setEditMode(true)}>
                                                 <Edit3 size={16} />
                                             </button>
-                                            <button className="btn btn-ghost btn-icon" title="Guardar como pendiente" onClick={() => confirmTransaction(true)}>
+                                            <button disabled={isUploading} className="btn btn-ghost btn-icon" style={{ opacity: isUploading ? 0.5 : 1 }} title="Guardar como pendiente" onClick={() => confirmTransaction(true)}>
                                                 <RefreshCw size={16} />
                                             </button>
-                                            <button className="btn btn-icon" style={{ background: 'var(--expense-light)', color: 'var(--expense)' }} title="Rechazar" onClick={() => { setExtracted(null); setFile(null); }}>
+                                            <button disabled={isUploading} className="btn btn-icon" style={{ background: 'var(--expense-light)', color: 'var(--expense)', opacity: isUploading ? 0.5 : 1 }} title="Rechazar" onClick={() => { setExtracted(null); setFile(null); }}>
                                                 <X size={16} />
                                             </button>
                                         </div>
