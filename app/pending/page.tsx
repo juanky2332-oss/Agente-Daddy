@@ -3,10 +3,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { TransactionItem } from '@/components/TransactionItem';
-import { CheckCircle, Trash2, Edit3, Clock, AlertCircle, Plus, X, Save, TrendingUp, ScanLine } from 'lucide-react';
+import { CheckCircle, Trash2, Edit3, Clock, AlertCircle, Plus, X, Save, TrendingUp, ScanLine, Download } from 'lucide-react';
+import { exportTransactionsToPDF } from '@/lib/pdf-export';
 
 export default function PendingPage() {
-    const { transactions, updateTransaction, deleteTransaction, addTransaction, categories } = useAppStore();
+    const { transactions, updateTransaction, deleteTransaction, addTransaction, categories, settings } = useAppStore();
     const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -49,6 +50,17 @@ export default function PendingPage() {
     const handleConfirm = (id: string) => {
         updateTransaction(id, { is_confirmed: true });
         setConfirmingId(null);
+
+        const tx = transactions.find(t => t.id === id);
+
+        if (tx) {
+            const message = `💳 <b>${tx.description}</b>\n📅 Fecha: ${tx.date}\n💶 Importe: ${tx.amount}€\n✅ Confirmado en Agente Daddy`;
+            fetch('/api/telegram/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message })
+            }).catch(e => console.error('Error enviando notificación a Telegram:', e));
+        }
     };
 
     const handleDelete = (id: string) => {
@@ -78,7 +90,7 @@ export default function PendingPage() {
         if (!newIncomeForm.amount || !newIncomeForm.description) return;
 
         addTransaction({
-            id: Math.random().toString(36).substring(2, 9),
+            id: crypto.randomUUID(),
             amount: parseFloat(newIncomeForm.amount),
             date: newIncomeForm.date,
             description: newIncomeForm.description,
@@ -105,7 +117,7 @@ export default function PendingPage() {
         if (!newExpenseForm.amount || !newExpenseForm.description) return;
 
         addTransaction({
-            id: Math.random().toString(36).substring(2, 9),
+            id: crypto.randomUUID(),
             amount: parseFloat(newExpenseForm.amount),
             date: newExpenseForm.date,
             description: newExpenseForm.description,
@@ -143,6 +155,13 @@ export default function PendingPage() {
                             {pending.length}
                         </div>
                     )}
+                    <button
+                        className="btn btn-ghost btn-sm flex items-center gap-2"
+                        onClick={() => exportTransactionsToPDF(pending, 'Transacciones_Pendientes', 'Listado de cobros y pagos pendientes de confirmar')}
+                        disabled={pending.length === 0}
+                    >
+                        <Download size={16} /> PDF
+                    </button>
                     <button
                         onClick={() => { setIsAddingIncome(!isAddingIncome); setIsAddingExpense(false); }}
                         style={{

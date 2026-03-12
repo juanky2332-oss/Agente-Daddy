@@ -42,7 +42,7 @@ export function HuskyWidget() {
         setLoading(true);
 
         try {
-            const reply = await sendChatMessage([...chatMessages, userMsg], settings.openai_api_key || '', contextJson);
+            const reply = await sendChatMessage([...chatMessages, userMsg], contextJson);
             addChatMessage({ id: `a-${Date.now()}`, role: 'assistant', content: reply, timestamp: new Date() });
         } catch (e: any) {
             addChatMessage({ id: `e-${Date.now()}`, role: 'assistant', content: '¡Guau! 🐾 Ha habido un error con la conexión a OpenAI. Revisa tus ajustes.', timestamp: new Date() });

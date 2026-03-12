@@ -51,6 +51,8 @@ export interface Settings {
   language: string; // default: 'es'
   openai_api_key?: string;
   telegram_bot_token?: string;
+  telegramChatId?: string;
+  calendarConnected?: boolean;
   pin_hash?: string;
   totp_secret?: string;
 }

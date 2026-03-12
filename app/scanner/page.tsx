@@ -60,7 +60,7 @@ function ScannerContent() {
         if (filePreviewUrl) URL.revokeObjectURL(filePreviewUrl);
         setFilePreviewUrl(URL.createObjectURL(f));
         try {
-            const result = await parseDocument(f, settings.openai_api_key || '');
+            const result = await parseDocument(f);
             setExtracted(result);
             setEditMode(true); // Default to edit mode so they can modify all fields right away
             if (result.likely_recurring) setShowRecurringPrompt(true);
@@ -73,7 +73,7 @@ function ScannerContent() {
         } finally {
             setAnalyzing(false);
         }
-    }, [settings.openai_api_key, filePreviewUrl]);
+    }, [filePreviewUrl]);
 
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault(); setDragOver(false);
@@ -84,26 +84,21 @@ function ScannerContent() {
     const confirmTransaction = async (pending = false) => {
         if (!extracted) return;
 
-        setSaved(true); // Usamos setSaved temporalmente como indicador de "Cargando..."
+        setSaved(true);
         let finalReceiptUrl = undefined;
 
         try {
             if (file) {
-                // Generar nombre de archivo único
                 const fileExt = file.name.split('.').pop();
                 const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
                 const filePath = `receipts/${fileName}`;
 
-                // Subir a Supabase Storage
                 const { error: uploadError } = await supabase.storage
                     .from('receipts')
                     .upload(filePath, file);
 
-                if (uploadError) {
-                    throw uploadError;
-                }
+                if (uploadError) throw uploadError;
 
-                // Obtener URL pública
                 const { data } = supabase.storage
                     .from('receipts')
                     .getPublicUrl(filePath);
@@ -111,13 +106,26 @@ function ScannerContent() {
                 finalReceiptUrl = data.publicUrl;
             }
 
-            addTransaction({
-                ...extracted, id: `t-${Date.now()}`,
-                is_confirmed: !pending, source: 'auto',
+            const newTx: Transaction = {
+                ...extracted,
+                id: `t-${Date.now()}`,
+                is_confirmed: !pending,
+                source: 'auto',
                 is_recurring: extracted.likely_recurring || false,
                 recurrence_days: extracted.likely_recurring ? (extracted.recurrence_days || 30) : undefined,
                 receipt_url: finalReceiptUrl
-            });
+            };
+
+            addTransaction(newTx);
+
+            // Trigger Calendar Sync if confirmed
+            if (!pending) {
+                fetch('/api/calendar/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ transaction: newTx })
+                }).catch(e => console.error('Calendar sync error:', e));
+            }
 
             // Cleanup
             setFile(null);
@@ -126,12 +134,11 @@ function ScannerContent() {
             if (filePreviewUrl) URL.revokeObjectURL(filePreviewUrl);
             setFilePreviewUrl(null);
 
-            // Mostrar "Guardado con éxito" ocultando el estado de carga después de 3s
             setTimeout(() => setSaved(false), 3000);
 
         } catch (error) {
-            console.error('Error uploading file:', error);
-            alert('Hubo un error al subir el documento. Revisa tu conexión.');
+            console.error('Error saving transaction:', error);
+            alert('Hubo un error al guardar. Revisa tu conexión.');
             setSaved(false);
         }
     };

@@ -86,14 +86,7 @@ export function Sidebar() {
                     );
                 })}
 
-                <div className="sidebar-section-label">Cuenta</div>
-                <button
-                    className={`sidebar-item ${pathname.startsWith('/settings') ? 'active' : ''}`}
-                    onClick={() => router.push('/settings')}
-                >
-                    <Settings size={19} strokeWidth={1.8} />
-                    Configuración
-                </button>
+
             </div>
 
             {/* Desktop FAB in Sidebar */}
@@ -142,43 +135,19 @@ export function Sidebar() {
                     aria-label="Nueva transacción"
                     style={{
                         position: 'relative', width: '64px', height: '64px', borderRadius: '50%',
-                        border: '2px solid var(--gray-100)', boxShadow: 'var(--shadow-md)',
+                        background: '#16a34a', color: 'white',
+                        boxShadow: 'var(--shadow-md)',
                         cursor: 'pointer', outline: 'none', padding: 0,
-                        transition: 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                        transition: 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        border: 'none'
                     }}
                     onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
                     onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                     onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
                     onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
                 >
-                    <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: 'inherit', overflow: 'hidden' }}>
-                        <img
-                            src="/husky.png"
-                            alt="Añadir"
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s', transform: showSidebarFAB ? 'scale(1.1)' : 'scale(1)' }}
-                        />
-                    </div>
-                    {/* Plus Badge Indicator */}
-                    <div style={{
-                        position: 'absolute',
-                        top: '-4px',
-                        right: '-4px',
-                        background: 'var(--income)',
-                        color: 'white',
-                        borderRadius: '50%',
-                        width: '26px',
-                        height: '26px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 2px 8px rgba(22, 163, 74, 0.4)',
-                        border: '2px solid white',
-                        transform: showSidebarFAB ? 'rotate(45deg)' : 'none',
-                        transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                        zIndex: 10
-                    }}>
-                        <Plus size={18} strokeWidth={3} />
-                    </div>
+                    <Plus size={36} strokeWidth={3} style={{ transform: showSidebarFAB ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s' }} />
                 </button>
             </div>
         </aside>

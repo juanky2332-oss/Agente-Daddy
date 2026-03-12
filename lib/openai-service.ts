@@ -1,18 +1,14 @@
 import { AIExtractedTransaction, ChatMessage } from './types';
+import { parseDocumentServer, sendChatMessageServer } from '@/app/actions/openai';
 
 // ============================================================
-// DOCUMENT PARSING (OpenAI Vision)
+// DOCUMENT PARSING 
 // ============================================================
 export async function parseDocument(
-    file: File,
-    apiKey: string
+    file: File
 ): Promise<AIExtractedTransaction> {
-    if (!apiKey) {
-        throw new Error('⚠️ ¡Falta tu API Key de OpenAI!\n\nVe a Ajustes (⚙️) > API OpenAI y pega tu clave secreta para que la IA pueda analizar los recibos mágicamente.');
-    }
-
-    // Prepara el contenido según el tipo de archivo
-    let messagesContent: any[] = [];
+    let contentData = '';
+    let isPdf = false;
 
     if (file.type.startsWith('image/')) {
         const reader = new FileReader();
@@ -21,11 +17,9 @@ export async function parseDocument(
             reader.readAsDataURL(file);
         });
         const base64 = await base64Promise;
-        messagesContent = [
-            { type: 'text', text: 'Analyze this receipt/invoice image. Extract EXACT data. IMPORTANT FOR AMOUNT: You MUST extract the FINAL TOTAL AMOUNT to pay including all taxes (IVA). DO NOT extract subtotals or tax bases. Fields needed: amount (number), date (YYYY-MM-DD), type (income|expense), description (legal name of establishment or service), category (ID from list: cat-1: Alimentación, cat-2: Vivienda, cat-3: Transporte, cat-4: Suscripciones, cat-5: Ocio, cat-6: Ingresos, cat-7: Salud, cat-8: Educación), likely_recurring (boolean), recurrence_days (number, optional, e.g., 30 for monthly). BE PRECISE. Return purely the JSON object without markdown formatting.' },
-            { type: 'image_url', image_url: { url: `data:${file.type};base64,${base64}` } }
-        ];
+        contentData = `data:${file.type};base64,${base64}`;
     } else if (file.type === 'application/pdf') {
+        isPdf = true;
         const formData = new FormData();
         formData.append('file', file);
 
@@ -35,92 +29,25 @@ export async function parseDocument(
         });
 
         if (!parseRes.ok) {
-            throw new Error('Error al extraer texto del PDF en el servidor local.');
+            const errData = await parseRes.json().catch(() => ({}));
+            throw new Error(errData.error || 'Error al extraer texto del PDF en el servidor local.');
         }
 
         const textData = await parseRes.json();
-        const extractedText = textData.text;
-
-        messagesContent = [
-            { type: 'text', text: 'Analyze the following text extracted from a receipt/invoice PDF. Extract EXACT data. IMPORTANT FOR AMOUNT: You MUST extract the FINAL TOTAL AMOUNT to pay including all taxes (IVA). DO NOT extract subtotals or tax bases. Fields needed: amount (number), date (YYYY-MM-DD), type (income|expense), description (legal name of establishment or service), category (ID from list: cat-1: Alimentación, cat-2: Vivienda, cat-3: Transporte, cat-4: Suscripciones, cat-5: Ocio, cat-6: Ingresos, cat-7: Salud, cat-8: Educación), likely_recurring (boolean), recurrence_days (number, optional, e.g., 30 for monthly). BE PRECISE. Return purely the JSON object without markdown formatting.' },
-            { type: 'text', text: extractedText.substring(0, 8000) } // límite de seguridad
-        ];
+        contentData = textData.text;
     } else {
         throw new Error(`Formato no soportado (${file.type}). Sube una imagen (JPG/PNG) o un PDF.`);
     }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            model: 'gpt-4o',
-            messages: [{
-                role: 'user',
-                content: messagesContent
-            }],
-            response_format: { type: 'json_object' },
-            max_tokens: 500,
-        }),
-    });
-
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error?.message || 'Error con OpenAI Vision');
-    }
-
-    const data = await response.json();
-    let content = data.choices[0].message.content;
-
-    // Clean potential markdown blocks from the response
-    content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-
-    const result = JSON.parse(content);
-    return {
-        ...result,
-        confidence: 0.95
-    };
+    return await parseDocumentServer(contentData, isPdf);
 }
 
 // ============================================================
-// HUSKY CHATBOT (OpenAI Chat)
+// HUSKY CHATBOT 
 // ============================================================
 export async function sendChatMessage(
     messages: ChatMessage[],
-    apiKey: string,
     contextJson: string
 ): Promise<string> {
-    if (!apiKey) {
-        throw new Error('⚠️ ¡Falta tu API Key de OpenAI!\n\nVe a Ajustes (⚙️) y añade tu clave secreta para usar a Husky.');
-    }
-
-    // Real OpenAI Chat API call
-    const systemPrompt = `Eres Agente Daddy, un asistente financiero personal formal, eficiente y muy profesional, aunque conservas la imagen de un Husky. Tienes acceso a los datos financieros del usuario (resumen): ${contextJson}.
-    REGLAS: Responde siempre en español. Sé conciso, educado y directo. Evita onomatopeyas de perros ("Guau", "Auuu"). Habla de forma correcta. Puedes usar algún emoticono ocasional (como 📊 o 💡) de forma sutil y justa para no resultar pesado. Si el usuario te pregunta por sus gastos, usa la información proporcionada.`;
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            model: 'gpt-4o',
-            messages: [
-                { role: 'system', content: systemPrompt },
-                ...messages.map(m => ({ role: m.role, content: m.content }))
-            ],
-            max_tokens: 500,
-        }),
-    });
-
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error?.message || 'Error con OpenAI Chat');
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
+    return await sendChatMessageServer(messages, contextJson);
 }

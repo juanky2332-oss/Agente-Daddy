@@ -1,7 +1,8 @@
 'use client';
 import { useState, useMemo } from 'react';
 import { useAppStore } from '@/lib/store';
-import { Search, FileText } from 'lucide-react';
+import { Search, FileText, Download } from 'lucide-react';
+import { exportTransactionsToPDF } from '@/lib/pdf-export';
 
 export default function DocumentsPage() {
     const { transactions, categories, setSelectedTransactionId } = useAppStore();
@@ -45,6 +46,16 @@ export default function DocumentsPage() {
                     <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Documentos 📂</h1>
                     <p style={{ color: 'var(--gray-500)', fontSize: '0.875rem' }}>Historial de recibos y facturas</p>
                 </div>
+                <button
+                    className="btn btn-primary btn-sm flex items-center gap-2"
+                    onClick={() => {
+                        const monthName = months.find(m => m.v === monthFilter)?.n || '';
+                        exportTransactionsToPDF(filteredTransactions, `Documentos_${yearFilter}_${monthName}`, 'Listado de documentos escaneados');
+                    }}
+                    disabled={filteredTransactions.length === 0}
+                >
+                    <Download size={16} /> Descargar PDF
+                </button>
             </header>
 
             {/* Filters Bar */}

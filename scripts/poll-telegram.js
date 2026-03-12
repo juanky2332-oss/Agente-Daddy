@@ -19,6 +19,7 @@ const LOCAL_WEBHOOK_URL = 'http://localhost:3000/api/telegram/webhook';
 
 console.log('🐾 Husky Local Bridge — Iniciando Polling...');
 console.log(`🤖 Usando Token: ${TOKEN.split(':')[0]}:[HIDDEN]`);
+console.log(`🔗 Webhook local: ${LOCAL_WEBHOOK_URL}`);
 
 let lastUpdateId = 0;
 
@@ -48,31 +49,31 @@ async function poll() {
     });
 }
 
-function forwardUpdate(update) {
-    console.log(`📩 Recibido mensaje de ${update.message?.from?.first_name || 'Alguien'}: "${update.message?.text || '[No text]'}"`);
+async function forwardUpdate(update) {
+    if (update.message) {
+        console.log(`📩 Recibido mensaje de ${update.message.from?.first_name || 'Alguien'}: "${update.message.text || '[No text]'}"`);
+    } else {
+        console.log(`📩 Recibido update tipo no-mensaje.`);
+    }
 
-    const options = {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    };
+    try {
+        const res = await fetch(LOCAL_WEBHOOK_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(update)
+        });
 
-    const req = http.request(LOCAL_WEBHOOK_URL, options, (res) => {
-        if (res.statusCode === 200) {
+        if (res.ok) {
             console.log('✅ Mensaje reenviado con éxito a localhost:3000');
         } else {
-            console.error(`❌ Error al reenviar a localhost:3000 (Status: ${res.statusCode})`);
+            console.error(`❌ Error al reenviar a localhost:3000 (Status: ${res.status})`);
         }
-    });
-
-    req.on('error', (e) => {
+    } catch (e) {
         console.error(`❌ Error al conectar con localhost:3000: ${e.message}`);
         console.log('💡 ¿Está la app Next.js corriendo en el puerto 3000?');
-    });
-
-    req.write(JSON.stringify(update));
-    req.end();
+    }
 }
 
 poll();

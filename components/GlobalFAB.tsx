@@ -61,35 +61,18 @@ export function GlobalFAB() {
                 className="fab mobile-only-fab"
                 onClick={() => setShowFABMenu((v) => !v)}
                 aria-label="Nueva transacción"
-                style={{ left: '20px', right: 'auto', bottom: 'calc(var(--bottom-nav-h) + 20px)' }}
-            >
-                <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: 'inherit', overflow: 'hidden' }}>
-                    <img
-                        src="/husky.png"
-                        alt="Añadir"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s', transform: showFABMenu ? 'scale(1.1)' : 'scale(1)' }}
-                    />
-                </div>
-                {/* Plus Badge Indicator */}
-                <div style={{
-                    position: 'absolute',
-                    top: '-4px',
-                    right: '-4px',
-                    background: 'var(--income)',
+                style={{
+                    left: '20px',
+                    right: 'auto',
+                    bottom: 'calc(var(--bottom-nav-h) + 20px)',
+                    background: '#16a34a', // Solid green
                     color: 'white',
-                    borderRadius: '50%',
-                    width: '24px',
-                    height: '24px',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 2px 8px rgba(22, 163, 74, 0.4)',
-                    border: '2px solid white',
-                    transform: showFABMenu ? 'rotate(45deg)' : 'none',
-                    transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
-                }}>
-                    <Plus size={16} strokeWidth={3} />
-                </div>
+                    justifyContent: 'center'
+                }}
+            >
+                <Plus size={32} strokeWidth={3} style={{ transform: showFABMenu ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s' }} />
             </button>
         </>
     );

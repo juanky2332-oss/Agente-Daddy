@@ -1,29 +1,105 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { Transaction } from '@/lib/types';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Download } from 'lucide-react';
 import { TransactionItem } from '@/components/TransactionItem';
+import { exportTransactionsToPDF } from '@/lib/pdf-export';
 
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-export default function CalendarPage() {
+function CalendarPageContent() {
     const { transactions } = useAppStore();
     const [current, setCurrent] = useState(new Date('2026-03-01'));
     const [selectedDay, setSelectedDay] = useState<string | null>(null);
+    const [googleEvents, setGoogleEvents] = useState<Transaction[]>([]);
+    const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
 
     const year = current.getFullYear();
     const month = current.getMonth();
 
+    useEffect(() => {
+        const fetchGoogleEvents = async () => {
+            setSyncStatus('syncing');
+            try {
+                const startOfMonth = new Date(year, month, 1).toISOString();
+                const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
+
+                const res = await fetch(`/api/calendar/events?timeMin=${startOfMonth}&timeMax=${endOfMonth}`);
+
+                if (!res.ok) {
+                    setSyncStatus('error');
+                    return;
+                }
+
+                const data = await res.json();
+                const items = data.items || [];
+                const events: Transaction[] = items.map((item: any) => ({
+                    id: `gcal-${item.id}`,
+                    amount: 0,
+                    date: item.start?.date || item.start?.dateTime?.split('T')[0],
+                    type: 'expense', // generic placeholder
+                    description: `📎 ${item.summary}`,
+                    category_id: 'cat-5',
+                    is_recurring: false,
+                    is_confirmed: false
+                }));
+                setGoogleEvents(events);
+                setSyncStatus('synced');
+            } catch (error: any) {
+                console.error('❌ Error fetching google events:', error);
+                setSyncStatus('error');
+            }
+        };
+
+        fetchGoogleEvents();
+    }, [year, month]);
+
     const txByDate = useMemo(() => {
         const map: Record<string, Transaction[]> = {};
-        transactions.forEach(t => {
+
+        // 1. Añadimos las transacciones explícitas e importadas de Google
+        [...transactions, ...googleEvents].forEach(t => {
             if (!map[t.date]) map[t.date] = [];
             map[t.date].push(t);
         });
+
+        // 2. Proyectar gastos/ingresos recurrentes hacia el futuro
+        const nextMonthDate = new Date(year, month + 2, 0); // Límite: un poco más allá del mes actual
+        const todayDate = new Date();
+
+        transactions.forEach(t => {
+            if (t.is_recurring && t.recurrence_days && t.recurrence_days > 0) {
+                let baseDate = new Date(t.date);
+
+                while (true) {
+                    baseDate.setDate(baseDate.getDate() + t.recurrence_days);
+                    if (baseDate > nextMonthDate) break;
+
+                    const dStr = baseDate.toISOString().split('T')[0];
+
+                    const virtualTx: Transaction = {
+                        ...t,
+                        id: `virt-${t.id}-${dStr}`,
+                        date: dStr,
+                        is_confirmed: false,
+                        description: `(Previsto) ${t.description.replace('(Previsto) ', '')}`
+                    };
+
+                    if (!map[dStr]) map[dStr] = [];
+
+                    const tempIdMatch = map[dStr].find(existing => existing.description === virtualTx.description && existing.amount === virtualTx.amount);
+                    if (!tempIdMatch) {
+                        map[dStr].push(virtualTx);
+                    }
+                }
+            }
+        });
+
         return map;
-    }, [transactions]);
+    }, [transactions, googleEvents, year, month]);
 
     // Build calendar grid
     const firstDay = new Date(year, month, 1);
@@ -46,7 +122,18 @@ export default function CalendarPage() {
 
     return (
         <div className="page-container">
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '20px' }}>Calendario 📅</h1>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Calendario 📅</h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {syncStatus === 'synced' && <span style={{ fontSize: '0.7rem', color: '#22c55e', fontWeight: 600 }}>● Sincronizado</span>}
+                    {syncStatus === 'syncing' && <span style={{ fontSize: '0.7rem', color: '#3b82f6', fontWeight: 600 }} className="animate-pulse">● Recibiendo actualizaciones...</span>}
+                    {syncStatus === 'error' && (
+                        <span style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 600 }}>
+                            ● Error de sincronización
+                        </span>
+                    )}
+                </div>
+            </div>
 
             <div className="card">
                 {/* Month Nav */}
@@ -161,7 +248,16 @@ export default function CalendarPage() {
                             <h3 style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--gray-800)' }}>
                                 {new Date(selectedDay + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                             </h3>
-                            <button className="btn btn-icon" style={{ width: 28, height: 28, minHeight: 0 }} onClick={() => setSelectedDay(null)}><X size={14} /></button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <button
+                                    className="btn btn-ghost btn-sm"
+                                    style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                                    onClick={() => exportTransactionsToPDF(selectedTx, `Dia_${selectedDay}`, `Resumen del dia ${selectedDay}`)}
+                                >
+                                    <Download size={12} style={{ marginRight: 4 }} /> PDF Dia
+                                </button>
+                                <button className="btn btn-icon" style={{ width: 28, height: 28, minHeight: 0 }} onClick={() => setSelectedDay(null)}><X size={14} /></button>
+                            </div>
                         </div>
                         {selectedTx.length === 0 ? (
                             <div className="empty-state" style={{ padding: '16px' }}>
@@ -253,5 +349,13 @@ export default function CalendarPage() {
                 }
             `}</style>
         </div>
+    );
+}
+
+export default function CalendarPage() {
+    return (
+        <Suspense fallback={<div className="page-container flex items-center justify-center min-h-[50vh]"><div className="spinner" /></div>}>
+            <CalendarPageContent />
+        </Suspense>
     );
 }

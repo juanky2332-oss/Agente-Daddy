@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { TransactionItem } from '@/components/TransactionItem';
@@ -34,6 +34,53 @@ export default function DashboardPage() {
 
     const fmtEur = (n: number) =>
         n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    useEffect(() => {
+        const checkTelegramNotifications = async () => {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const lastSync = localStorage.getItem('last_telegram_sync');
+            if (lastSync === todayStr) return;
+
+            const notifyDays = 3;
+            const targetDate = new Date();
+            targetDate.setDate(targetDate.getDate() + notifyDays);
+            const targetDateStr = targetDate.toISOString().split('T')[0];
+
+            const upcoming: any[] = [];
+            transactions.filter(t => t.is_recurring && t.recurrence_days).forEach(t => {
+                let base = new Date(t.date);
+                while (base <= targetDate) {
+                    base.setDate(base.getDate() + t.recurrence_days!);
+                    const dStr = base.toISOString().split('T')[0];
+                    if (dStr === targetDateStr) {
+                        upcoming.push({ ...t, date: dStr });
+                    }
+                }
+            });
+
+            if (upcoming.length > 0) {
+                const msgLines = upcoming.map(t => `• ${t.description.replace('(Previsto) ', '')}: ${t.type === 'income' ? '+' : '-'}${t.amount}€`);
+                const message = `🔔 *¡Aviso de previsión!*\nEn ${notifyDays} días (el ${targetDateStr}) tienes:\n\n${msgLines.join('\n')}`;
+
+                try {
+                    const res = await fetch('/api/telegram/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message })
+                    });
+                    if (res.ok) {
+                        localStorage.setItem('last_telegram_sync', todayStr);
+                    }
+                } catch (e) {
+                    console.error("Error sending telegram reminder", e);
+                }
+            } else {
+                localStorage.setItem('last_telegram_sync', todayStr);
+            }
+        };
+
+        checkTelegramNotifications();
+    }, [transactions]);
 
     return (
         <div className="page-container">

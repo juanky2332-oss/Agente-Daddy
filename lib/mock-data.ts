@@ -33,6 +33,8 @@ export const MOCK_SETTINGS: Settings = {
     language: 'es',
     openai_api_key: '',
     telegram_bot_token: '',
+    telegramChatId: '',
+    calendarConnected: false,
 };
 
 // ============================================================
