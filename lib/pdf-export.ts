@@ -1,4 +1,4 @@
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Transaction } from './types';
 
@@ -7,7 +7,7 @@ export const exportTransactionsToPDF = (
     title: string,
     subtitle?: string
 ) => {
-    const doc = jsPDF();
+    const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
 
     // Header
@@ -57,7 +57,7 @@ export const exportTransactionsToPDF = (
     doc.text(`Total Ingresos: ${totalIncome.toFixed(2)} €`, 14, finalY);
     doc.text(`Total Gastos: ${totalExpense.toFixed(2)} €`, 14, finalY + 6);
 
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text(`Balance: ${(totalIncome - totalExpense).toFixed(2)} €`, 14, finalY + 12);
 
     doc.save(`${title.toLowerCase().replace(/\s+/g, '_')}.pdf`);
