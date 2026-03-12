@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
 import { parseDocument } from '@/lib/openai-service';
-import { AIExtractedTransaction, TransactionType } from '@/lib/types';
+import { AIExtractedTransaction, TransactionType, Transaction } from '@/lib/types';
 import { ScanLine, PenLine, Upload, CheckCircle, X, Edit3, RefreshCw, AlertCircle, Eye } from 'lucide-react';
 
 const CATEGORIES = [
